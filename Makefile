@@ -93,6 +93,12 @@ build: go.sum $(BUILDDIR)/
 	@cd $(EVMD_DIR) && CGO_ENABLED="1" \
 	  go build $(BUILD_FLAGS) -o $(BUILDDIR)/$(EXAMPLE_BINARY) $(EVMD_MAIN_PKG)
 
+BUILD_TARGETS := build install
+
+.PHONY: build
+
+build: BUILD_ARGS=-o $(BUILDDIR)/
+
 # Cross-compile for Linux AMD64
 build-linux:
 	GOOS=linux GOARCH=amd64 $(MAKE) build
