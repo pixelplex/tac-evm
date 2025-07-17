@@ -29,6 +29,8 @@ import (
 	govkeeper "github.com/cosmos/cosmos-sdk/x/gov/keeper"
 	slashingkeeper "github.com/cosmos/cosmos-sdk/x/slashing/keeper"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
+	liquidStakePrecompile "github.com/cosmos/evm/precompiles/liquidstake"
+	liquidstakekeeper "github.com/cosmos/evm/x/liquidstake/keeper"
 )
 
 // Optionals define some optional params that can be applied to _some_ precompiles.
@@ -84,6 +86,8 @@ func NewAvailableStaticPrecompiles(
 	govKeeper govkeeper.Keeper,
 	slashingKeeper slashingkeeper.Keeper,
 	codec codec.Codec,
+	evidenceKeeper evidencekeeper.Keeper,
+	liquidstakeKeeper liquidstakekeeper.Keeper,
 	opts ...Option,
 ) map[common.Address]vm.PrecompiledContract {
 	options := defaultOptionals()
@@ -142,6 +146,16 @@ func NewAvailableStaticPrecompiles(
 		panic(fmt.Errorf("failed to instantiate slashing precompile: %w", err))
 	}
 
+	evidencePrecompile, err := evidenceprecompile.NewPrecompile(evidenceKeeper, authzKeeper)
+	if err != nil {
+		panic(fmt.Errorf("failed to instantiate evidence precompile: %w", err))
+	}
+
+	liquidstakePrecompile, err := liquidStakePrecompile.NewPrecompile(liquidstakeKeeper, authzKeeper)
+	if err != nil {
+		panic(fmt.Errorf("failed to instantiate evidence precompile: %w", err))
+	}
+
 	// Stateless precompiles
 	precompiles[bech32Precompile.Address()] = bech32Precompile
 	precompiles[p256Precompile.Address()] = p256Precompile
@@ -153,6 +167,8 @@ func NewAvailableStaticPrecompiles(
 	precompiles[bankPrecompile.Address()] = bankPrecompile
 	precompiles[govPrecompile.Address()] = govPrecompile
 	precompiles[slashingPrecompile.Address()] = slashingPrecompile
+	precompiles[evidencePrecompile.Address()] = evidencePrecompile
+	precompiles[liquidstakePrecompile.Address()] = liquidstakePrecompile
 
 	return precompiles
 }

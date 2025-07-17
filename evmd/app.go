@@ -605,6 +605,8 @@ func NewExampleApp(
 			app.GovKeeper,
 			app.SlashingKeeper,
 			app.AppCodec(),
+			app.EvidenceKeeper,
+			app.LiquidStakeKeeper,
 		),
 	)
 
