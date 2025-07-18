@@ -29,7 +29,7 @@ func (p Precompile) LiquidStake(
 	method *abi.Method,
 	args []interface{},
 ) ([]byte, error) {
-	bondDenom := p.liquidStakeKeeper.LiquidBondDenom(ctx)
+	bondDenom := "aatom"
 
 	msg, delegatorHexAddr, err := NewMsgLiquidStake(args, bondDenom)
 	if err != nil {
