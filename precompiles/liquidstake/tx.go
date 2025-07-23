@@ -29,7 +29,11 @@ func (p Precompile) LiquidStake(
 	method *abi.Method,
 	args []interface{},
 ) ([]byte, error) {
-	bondDenom := "aatom"
+	bondDenom, err := p.liquidStakeKeeper.BondDenom(ctx)
+
+	if err != nil {
+		return nil, err
+	}
 
 	msg, delegatorHexAddr, err := NewMsgLiquidStake(args, bondDenom)
 	if err != nil {
@@ -58,7 +62,11 @@ func (p Precompile) StakeToLP(
 	method *abi.Method,
 	args []interface{},
 ) ([]byte, error) {
-	bondDenom := p.liquidStakeKeeper.LiquidBondDenom(ctx)
+	liquidBondDenom := p.liquidStakeKeeper.LiquidBondDenom(ctx)
+	bondDenom, err := p.liquidStakeKeeper.BondDenom(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	msg, delegatorHexAddr, err := NewMsgStakeToLP(args, bondDenom)
 	if err != nil {

@@ -70,7 +70,7 @@ interface LiquidStakingI{
     ) external returns (bool success);
     // dev notes: bool success corresponds to "empty" responce in message server
 
-    function StakeToLP(
+    function stakeToLP(
         address         delegatorAddress,
         address         validatorAddress,
         uint256         stakedAmount,
@@ -78,32 +78,32 @@ interface LiquidStakingI{
     ) external returns (bool success);
     // dev notes: bool success corresponds to "empty" responce in message server
 
-    function LiquidUnstake(
+    function liquidUnstake(
         address         delegatorAddress,
         uint256         callDataAmount
     ) external returns (int64 completionTime);
     // dev notes:: kinda unclear how to cast golang time to it
 
-    function UpdateParams(
+    function updateParams(
         address         authority,
         LiquidStakeParams calldata params
     ) external returns (bool success);
 
-    function UpdateWhiteListedValidators(
+    function updateWhitelistedValidators(
         address                         authoriy,
         WhitelistedValidator[] calldata whitelistedValidators
     ) external returns (bool success);
 
-    function SetModulePaused(
+    function setModulePaused(
         address authoriy,
         bool    isPaused
     ) external returns (bool success);
     // functions definitions end
 
     // view functions/query definitions start
-    function Params() external view returns(LiquidStakeParams calldata);
-    function LiquidValidators() external view returns(LiquidValidatorState[] calldata);
-    function States() external view returns(NetAmountState calldata);
+    function params() external view returns(LiquidStakeParams calldata);
+    function liquidValidators() external view returns(LiquidValidatorState[] calldata);
+    function states() external view returns(NetAmountState calldata);
     // view functions/query definitions end
 
 
