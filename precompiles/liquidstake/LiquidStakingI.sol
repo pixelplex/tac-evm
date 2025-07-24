@@ -80,9 +80,8 @@ interface LiquidStakingI{
 
     function liquidUnstake(
         address         delegatorAddress,
-        uint256         callDataAmount
+        uint256         Amount
     ) external returns (int64 completionTime);
-    // dev notes:: kinda unclear how to cast golang time to it
 
     function updateParams(
         address         authority,
