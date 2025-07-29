@@ -131,10 +131,7 @@ func (Precompile) IsTransaction(method *abi.Method) bool {
 	case // tx
 		LiquidStakeMethod,
 		StakeToLPMethod,
-		LiquidUnstakeMethod,
-		UpdateParamsMethod,
-		UpdateWhitelistedValidatorsMethod,
-		SetModulePausedMethod:
+		LiquidUnstakeMethod:
 		return true
 	default:
 		return false
@@ -145,3 +142,4 @@ func (Precompile) IsTransaction(method *abi.Method) bool {
 func (p Precompile) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("evm extension", "staking")
 }
+
