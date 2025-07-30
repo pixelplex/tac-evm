@@ -2,6 +2,7 @@ package liquidstake
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
@@ -46,6 +47,30 @@ func (p Precompile) LiquidStake(
 	msgSrv := keeper.NewMsgServerImpl(p.liquidStakeKeeper)
 	if _, err = msgSrv.LiquidStake(ctx, msg); err != nil {
 		return nil, err
+	}
+
+	// Only update the authorization if the contract caller is different from owner of the funds
+	if !isCallerOrigin && !isSCDelegator {
+		if err := p.UpdateLiquidStakeAuthorization(ctx, contract.CallerAddress, *delegatorHexAddr, liquidAuthz, expiration, LiquidStakeMsg, msg); err != nil {
+			return nil, err
+		}
+	}
+
+	if !isCallerOrigin && msg.Amount.Denom == evmtypes.GetEVMCoinDenom() {
+		// get the delegator address from the message
+		delAccAddr := sdk.MustAccAddressFromBech32(msg.DelegatorAddress)
+		delHexAddr := common.BytesToAddress(delAccAddr)
+		// NOTE: This ensures that the changes in the bank keeper are correctly mirrored to the EVM stateDB
+		// when calling the precompile from a smart contract
+		// This prevents the stateDB from overwriting the changed balance in the bank keeper when committing the EVM state.
+
+		// Need to scale the amount to 18 decimals for the EVM balance change entry
+		scaledAmt, err := utils.Uint256FromBigInt(evmtypes.ConvertAmountTo18DecimalsBigInt(msg.Amount.Amount.BigInt()))
+		if err != nil {
+			return nil, err
+		}
+
+		p.SetBalanceChangeEntries(cmn.NewBalanceChangeEntry(delHexAddr, scaledAmt, cmn.Sub))
 	}
 
 	return method.Outputs.Pack(true)
@@ -112,6 +137,31 @@ func (p Precompile) LiquidUnstake(
 	if err != nil {
 		return nil, err
 	}
+
+	// Only update the authorization if the contract caller is different from owner of the funds
+	if !isCallerOrigin && !isSCDelegator {
+		if err := p.UpdateLiquidStakeAuthorization(ctx, contract.CallerAddress, *delegatorHexAddr, liquidAuthz, expiration, LiquidUnstakeMsg, msg); err != nil {
+			return nil, err
+		}
+	}
+
+	if !isCallerOrigin && msg.Amount.Denom == evmtypes.GetEVMCoinDenom() {
+		// get the delegator address from the message
+		delAccAddr := sdk.MustAccAddressFromBech32(msg.DelegatorAddress)
+		delHexAddr := common.BytesToAddress(delAccAddr)
+		// NOTE: This ensures that the changes in the bank keeper are correctly mirrored to the EVM stateDB
+		// when calling the precompile from a smart contract
+		// This prevents the stateDB from overwriting the changed balance in the bank keeper when committing the EVM state.
+
+		// Need to scale the amount to 18 decimals for the EVM balance change entry
+		scaledAmt, err := utils.Uint256FromBigInt(evmtypes.ConvertAmountTo18DecimalsBigInt(msg.Amount.Amount.BigInt()))
+		if err != nil {
+			return nil, err
+		}
+
+		p.SetBalanceChangeEntries(cmn.NewBalanceChangeEntry(delHexAddr, scaledAmt, cmn.Sub))
+	}
+
 
 	return method.Outputs.Pack(responce.CompletionTime.Unix())
 }
