@@ -64,21 +64,20 @@ func (p Precompile) LiquidStake(
 		// when calling the precompile from a smart contract
 		// This prevents the stateDB from overwriting the changed balance in the bank keeper when committing the EVM state.
 
-		// Need to scale the amount to 18 decimals for the EVM balance change entry
-		scaledAmt, err := utils.Uint256FromBigInt(evmtypes.ConvertAmountTo18DecimalsBigInt(msg.Amount.Amount.BigInt()))
+		amt, err := utils.Uint256FromBigInt(msg.Amount.Amount.BigInt())
 		if err != nil {
 			return nil, err
 		}
 
-		p.SetBalanceChangeEntries(cmn.NewBalanceChangeEntry(delHexAddr, scaledAmt, cmn.Sub))
+		p.SetBalanceChangeEntries(cmn.NewBalanceChangeEntry(delHexAddr, amt, cmn.Sub))
 	}
 
-// Emit event after successful transaction
-if err := p.EmitLiquidStakeEvent(ctx, stateDB, msg, *delegatorHexAddr); err != nil {
-    return nil, err
-}
+	// Emit event after successful transaction
+	if err := p.EmitLiquidStakeEvent(ctx, stateDB, msg, *delegatorHexAddr); err != nil {
+		return nil, err
+	}
 
-return method.Outputs.Pack(true)
+	return method.Outputs.Pack(true)
 }
 
 func (p Precompile) StakeToLP(
@@ -112,12 +111,12 @@ func (p Precompile) StakeToLP(
 		return nil, err
 	}
 
-// Emit event after successful transaction
-if err := p.EmitStakeToLPEvent(ctx, stateDB, msg, *delegatorHexAddr); err != nil {
-    return nil, err
-}
+	// Emit event after successful transaction
+	if err := p.EmitStakeToLPEvent(ctx, stateDB, msg, *delegatorHexAddr); err != nil {
+		return nil, err
+	}
 
-return method.Outputs.Pack(true)
+	return method.Outputs.Pack(true)
 }
 
 func (p Precompile) LiquidUnstake(
@@ -163,21 +162,21 @@ func (p Precompile) LiquidUnstake(
 		// when calling the precompile from a smart contract
 		// This prevents the stateDB from overwriting the changed balance in the bank keeper when committing the EVM state.
 
-		// Need to scale the amount to 18 decimals for the EVM balance change entry
-		scaledAmt, err := utils.Uint256FromBigInt(evmtypes.ConvertAmountTo18DecimalsBigInt(msg.Amount.Amount.BigInt()))
+
+		amt, err := utils.Uint256FromBigInt(msg.Amount.Amount.BigInt())
 		if err != nil {
 			return nil, err
 		}
 
-		p.SetBalanceChangeEntries(cmn.NewBalanceChangeEntry(delHexAddr, scaledAmt, cmn.Sub))
+		p.SetBalanceChangeEntries(cmn.NewBalanceChangeEntry(delHexAddr, amt, cmn.Sub))
 	}
 
 
-// Emit event after successful transaction
-if err := p.EmitLiquidUnstakeEvent(ctx, stateDB, msg, *delegatorHexAddr); err != nil {
-    return nil, err
-}
+	// Emit event after successful transaction
+	if err := p.EmitLiquidUnstakeEvent(ctx, stateDB, msg, *delegatorHexAddr); err != nil {
+		return nil, err
+	}
 
-return method.Outputs.Pack(responce.CompletionTime.Unix())
+	return method.Outputs.Pack(responce.CompletionTime.Unix())
 }
 
