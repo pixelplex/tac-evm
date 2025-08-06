@@ -106,6 +106,23 @@ func (p Precompile) Run(evm *vm.EVM, contract *vm.Contract, readOnly bool) (bz [
 			case LiquidUnstakeMethod:
 				bz, err = p.LiquidUnstake(ctx, evm.Origin, contract, stateDB, method, args)
 
+			// Transactions
+			case UpdateParams:
+				bz, err = p.UpdateParams(ctx, evm.Origin, contract, stateDB, method, args)
+			case UpdateWhitelistedValidators:
+				bz, err = p.UpdateWhitelistedValidators(ctx, evm.Origin, contract, stateDB, method, args)
+			case SetModulePaused:
+				bz, err = p.SetModulePaused(ctx, evm.Origin, contract, stateDB, method, args)
+
+			// Query methods
+			case ParamsMethod:
+				bz, err = p.Params(ctx, contract, method, args)
+			case LiquidValidatorsMethod:
+				bz, err = p.LiquidValidators(ctx, contract, method, args)
+			case StatesMethod:
+				bz, err = p.States(ctx, contract, method, args)
+
+			}
 
 			if err != nil {
 				return nil, err
@@ -143,4 +160,3 @@ func (Precompile) IsTransaction(method *abi.Method) bool {
 func (p Precompile) Logger(ctx sdk.Context) log.Logger {
 	return ctx.Logger().With("evm extension", "staking")
 }
-
