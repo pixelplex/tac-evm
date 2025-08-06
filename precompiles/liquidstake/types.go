@@ -118,8 +118,7 @@ func NewNetAmount(nas *types.NetAmountState) NetAmount {
 	}
 }
 
-
-func NewLiquidStakeParamsOutput(params *types.Params) LiquidStakeParams {
+func NewLiquidStakeWhitelistedValidatorsOutput(params *types.Params) []WhitelistedValidator {
 	whitelistedValidators := make([]WhitelistedValidator, len(params.WhitelistedValidators))
 	for i, wv := range params.WhitelistedValidators {
 		// Convert bech32 validator address to common.Address
@@ -133,6 +132,11 @@ func NewLiquidStakeParamsOutput(params *types.Params) LiquidStakeParams {
 		}
 	}
 
+	return whitelistedValidators
+}
+
+
+func NewLiquidStakeParamsOutput(params *types.Params) LiquidStakeParams {
 	// Convert bech32 address strings to common.Address for ABI compatibility
 	var cwLockedPoolAddr, feeAccountAddr, whitelistAdminAddr common.Address
 	
@@ -153,6 +157,8 @@ func NewLiquidStakeParamsOutput(params *types.Params) LiquidStakeParams {
 			whitelistAdminAddr = common.BytesToAddress(accAddr.Bytes())
 		}
 	}
+
+	whitelistedValidators := NewLiquidStakeWhitelistedValidatorsOutput(params)
 
 	return LiquidStakeParams{
 		LiquidBondDenom:       params.LiquidBondDenom,
@@ -298,12 +304,12 @@ func NewMsgUpdateParams(args []interface{}, denom string) (*types.MsgUpdateParam
 	Params := types.Params{
 		LiquidBondDenom:       params.LiquidBondDenom,
 		WhitelistAdminAddress: sdk.AccAddress(params.WhitelistAdminAddress.Bytes()).String(),
-		UnstakeFeeRate:        math.LegacyNewDecFromBigIntWithPrec(params.UnstakeFeeRate, math.LegacyPrecision), //TODO: something wrong here
+		UnstakeFeeRate:        math.LegacyNewDecFromBigIntWithPrec(params.UnstakeFeeRate, math.LegacyPrecision),
 		LsmDisabled:           params.LsmDisabled,
 		MinLiquidStakeAmount:  math.NewIntFromBigInt(params.MinLiquidStakeAmount),
 		CwLockedPoolAddress:   sdk.AccAddress(params.CwLockedPoolAddress.Bytes()).String(),
 		FeeAccountAddress:     sdk.AccAddress(params.FeeAccountAddress.Bytes()).String(),
-		AutocompoundFeeRate:   math.LegacyNewDecFromBigIntWithPrec(params.AutocompoundFeeRate, math.LegacyPrecision),  //TODO: something wrong here
+		AutocompoundFeeRate:   math.LegacyNewDecFromBigIntWithPrec(params.AutocompoundFeeRate, math.LegacyPrecision),
 		ModulePaused:          params.ModulePaused,
 		WhitelistedValidators: make([]types.WhitelistedValidator, len(params.WhitelistedValidators)),
 	}

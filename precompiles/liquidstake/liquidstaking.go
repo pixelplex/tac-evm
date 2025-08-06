@@ -151,6 +151,11 @@ func (Precompile) IsTransaction(method *abi.Method) bool {
 		StakeToLPMethod,
 		LiquidUnstakeMethod:
 		return true
+	case // tx admin
+		UpdateParams,
+		UpdateWhitelistedValidators,
+		SetModulePaused:
+		return true
 	default:
 		return false
 	}
