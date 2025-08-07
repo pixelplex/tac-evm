@@ -194,7 +194,25 @@ func (p Precompile) UpdateParams(
 ) ([]byte, error) {
 	bondDenom := p.liquidStakeKeeper.LiquidBondDenom(ctx)
 
-	msg, err := NewMsgUpdateParams(args, bondDenom)
+	AdminAccAddr, err := sdk.AccAddressFromBech32(p.liquidStakeKeeper.GetParams(ctx).WhitelistAdminAddress)
+	var AdminBytes []byte
+	if err == nil {
+		AdminBytes = AdminAccAddr.Bytes()
+	} else {
+		AdminValAddr, err := sdk.ValAddressFromBech32(p.liquidStakeKeeper.GetParams(ctx).WhitelistAdminAddress)
+		if err != nil {
+			return nil, err
+		}
+		AdminBytes = AdminValAddr.Bytes()
+	}
+
+	adminAddr := common.BytesToAddress(AdminBytes)
+
+	if adminAddr != contract.CallerAddress {
+		return nil, errors.ErrUnauthorized
+	}
+
+	msg, err := NewMsgUpdateParams(args, bondDenom, adminAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +237,25 @@ func (p Precompile) UpdateWhitelistedValidators(
 ) ([]byte, error) {
 	bondDenom := p.liquidStakeKeeper.LiquidBondDenom(ctx)
 
-	msg, err := NewMsgUpdateWhitelistedValidators(args, bondDenom)
+	AdminAccAddr, err := sdk.AccAddressFromBech32(p.liquidStakeKeeper.GetParams(ctx).WhitelistAdminAddress)
+	var AdminBytes []byte
+	if err == nil {
+		AdminBytes = AdminAccAddr.Bytes()
+	} else {
+		AdminValAddr, err := sdk.ValAddressFromBech32(p.liquidStakeKeeper.GetParams(ctx).WhitelistAdminAddress)
+		if err != nil {
+			return nil, err
+		}
+		AdminBytes = AdminValAddr.Bytes()
+	}
+
+	adminAddr := common.BytesToAddress(AdminBytes)
+
+	if adminAddr != contract.CallerAddress {
+		return nil, errors.ErrUnauthorized
+	}
+
+	msg, err := NewMsgUpdateWhitelistedValidators(args, bondDenom, adminAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -244,7 +280,25 @@ func (p Precompile) SetModulePaused(
 ) ([]byte, error) {
 	bondDenom := p.liquidStakeKeeper.LiquidBondDenom(ctx)
 
-	msg, err := NewMsgSetModulePaused(args, bondDenom)
+	AdminAccAddr, err := sdk.AccAddressFromBech32(p.liquidStakeKeeper.GetParams(ctx).WhitelistAdminAddress)
+	var AdminBytes []byte
+	if err == nil {
+		AdminBytes = AdminAccAddr.Bytes()
+	} else {
+		AdminValAddr, err := sdk.ValAddressFromBech32(p.liquidStakeKeeper.GetParams(ctx).WhitelistAdminAddress)
+		if err != nil {
+			return nil, err
+		}
+		AdminBytes = AdminValAddr.Bytes()
+	}
+
+	adminAddr := common.BytesToAddress(AdminBytes)
+
+	if adminAddr != contract.CallerAddress {
+		return nil, errors.ErrUnauthorized
+	}
+
+	msg, err := NewMsgSetModulePaused(args, bondDenom, adminAddr)
 	if err != nil {
 		return nil, err
 	}
