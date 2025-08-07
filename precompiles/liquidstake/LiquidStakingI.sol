@@ -120,5 +120,18 @@ interface LiquidStakingI{
         address indexed     delegatorAddress,
         uint256             amount
     );
+
+    event UpdateParams(
+        LiquidStakeParams   params
+    );
+
+    event UpdateWhitelistedValidator(
+        WhitelistedValidator[] whitelistedValidators
+    );
+
+    event SetModulePaused(
+        bool                isPaused
+    );
     // events definitions end
 }
+
