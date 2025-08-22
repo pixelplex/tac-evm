@@ -27,24 +27,34 @@ type WhitelistedValidator = struct {
 }
 
 type LiquidStakeParams = struct {
-	LiquidBondDenom            string                 `json:"liquidBondDenom"`
-	WhitelistedValidators      []WhitelistedValidator `json:"whitelistedValidators"`
-	UnstakeFeeRate             *big.Int               `json:"unstakeFeeRate"`
-	LsmDisabled                bool                   `json:"lsmDisabled"`
-	MinLiquidStakeAmount       *big.Int               `json:"minLiquidStakeAmount"`
-	CwLockedPoolAddress        common.Address         `json:"cwLockedPoolAddress"`
-	FeeAccountAddress          common.Address         `json:"feeAccountAddress"`
-	AutocompoundFeeRate        *big.Int               `json:"autocompoundFeeRate"`
-	WhitelistAdminAddress      common.Address         `json:"whitelistAdminAddress"`
-	ModulePaused               bool                   `json:"modulePaused"`
+	LiquidBondDenom       string                 `json:"liquidBondDenom"`
+	WhitelistedValidators []WhitelistedValidator `json:"whitelistedValidators"`
+	UnstakeFeeRate        *big.Int               `json:"unstakeFeeRate"`
+	LsmDisabled           bool                   `json:"lsmDisabled"`
+	MinLiquidStakeAmount  *big.Int               `json:"minLiquidStakeAmount"`
+	CwLockedPoolAddress   common.Address         `json:"cwLockedPoolAddress"`
+	FeeAccountAddress     common.Address         `json:"feeAccountAddress"`
+	AutocompoundFeeRate   *big.Int               `json:"autocompoundFeeRate"`
+	WhitelistAdminAddress common.Address         `json:"whitelistAdminAddress"`
+	ModulePaused          bool                   `json:"modulePaused"`
+}
+
+type LiquidStakeUpdatableParams = struct {
+	UnstakeFeeRate        *big.Int       `json:"unstakeFeeRate"`
+	LsmDisabled           bool           `json:"lsmDisabled"`
+	MinLiquidStakeAmount  *big.Int       `json:"minLiquidStakeAmount"`
+	CwLockedPoolAddress   common.Address `json:"cwLockedPoolAddress"`
+	FeeAccountAddress     common.Address `json:"feeAccountAddress"`
+	AutocompoundFeeRate   *big.Int       `json:"autocompoundFeeRate"`
+	WhitelistAdminAddress common.Address `json:"whitelistAdminAddress"`
 }
 
 type LiquidValidatorState struct {
-	OperatorAddress  common.Address   `json:"operatorAddress"`
-	Weight           *big.Int         `json:"weight"`
-	Status           uint8            `json:"status"`
-	DelShares        *big.Int         `json:"delShares"`
-	LiquidTokens     *big.Int         `json:"liquidTokens"`
+	OperatorAddress common.Address `json:"operatorAddress"`
+	Weight          *big.Int       `json:"weight"`
+	Status          uint8          `json:"status"`
+	DelShares       *big.Int       `json:"delShares"`
+	LiquidTokens    *big.Int       `json:"liquidTokens"`
 }
 
 type NetAmount struct {
@@ -57,7 +67,6 @@ type NetAmount struct {
 	TotalUnbondingBalance *big.Int `json:"totalUnbondingBalance"`
 	ProxyAccBalance       *big.Int `json:"proxyAccBalance"`
 }
-
 
 // EventLiquidStake represents the LiquidStake event data
 type EventLiquidStake struct {
@@ -81,7 +90,7 @@ type EventLiquidUnstake struct {
 
 // EventUpdateParams represents the UpdateParams event data
 type EventUpdateParams struct {
-	Params LiquidStakeParams `json:"params"`
+	Params LiquidStakeUpdatableParams `json:"params"`
 }
 
 // EventUpdateWhitelistedValidator represents the UpdateWhitelistedValidator event data
@@ -94,7 +103,6 @@ type EventSetModulePaused struct {
 	IsPaused bool `json:"isPaused"`
 }
 
-
 func NewLiquidValidatorOutput(lvs *types.LiquidValidatorState) LiquidValidatorState {
 	valAddr, err := sdk.ValAddressFromBech32(lvs.OperatorAddress)
 	var validatorAddr common.Address
@@ -104,10 +112,10 @@ func NewLiquidValidatorOutput(lvs *types.LiquidValidatorState) LiquidValidatorSt
 
 	return LiquidValidatorState{
 		OperatorAddress: validatorAddr,
-		Weight:           lvs.Weight.BigInt(),
-		Status:           uint8(lvs.Status),
-		DelShares:        lvs.DelShares.BigInt(),
-		LiquidTokens:     lvs.LiquidTokens.BigInt(),
+		Weight:          lvs.Weight.BigInt(),
+		Status:          uint8(lvs.Status),
+		DelShares:       lvs.DelShares.BigInt(),
+		LiquidTokens:    lvs.LiquidTokens.BigInt(),
 	}
 }
 
@@ -118,7 +126,6 @@ func PackLiquidValidatorOutputs(lvs []types.LiquidValidatorState, args abi.Argum
 	}
 	return args.Pack(outputs)
 }
-
 
 func NewNetAmount(nas *types.NetAmountState) NetAmount {
 	return NetAmount{
@@ -150,23 +157,22 @@ func NewLiquidStakeWhitelistedValidatorsOutput(params *types.Params) []Whitelist
 	return whitelistedValidators
 }
 
-
 func NewLiquidStakeParamsOutput(params *types.Params) LiquidStakeParams {
 	// Convert bech32 address strings to common.Address for ABI compatibility
 	var cwLockedPoolAddr, feeAccountAddr, whitelistAdminAddr common.Address
-	
+
 	if params.CwLockedPoolAddress != "" {
 		if accAddr, err := sdk.AccAddressFromBech32(params.CwLockedPoolAddress); err == nil {
 			cwLockedPoolAddr = common.BytesToAddress(accAddr.Bytes())
 		}
 	}
-	
+
 	if params.FeeAccountAddress != "" {
 		if accAddr, err := sdk.AccAddressFromBech32(params.FeeAccountAddress); err == nil {
 			feeAccountAddr = common.BytesToAddress(accAddr.Bytes())
 		}
 	}
-	
+
 	if params.WhitelistAdminAddress != "" {
 		if accAddr, err := sdk.AccAddressFromBech32(params.WhitelistAdminAddress); err == nil {
 			whitelistAdminAddr = common.BytesToAddress(accAddr.Bytes())
@@ -189,35 +195,37 @@ func NewLiquidStakeParamsOutput(params *types.Params) LiquidStakeParams {
 	}
 }
 
-// !!WARNING!!, from PixelPlex dev Team:
-// Adding new precompiled contract introduces few implicit conflicts with dependency to cosmos/evm module
-// Particulary here: adding new binded address that potentially can conflict with already exzisted
-const LiquidStakingPrecompileAddress = "0x00000000000000000000000000000000000001600"
+func NewLiquidStakeUpdatableParamsOutput(params *types.UpdatableParams) LiquidStakeUpdatableParams {
+	// Convert bech32 address strings to common.Address for ABI compatibility
+	var cwLockedPoolAddr, feeAccountAddr, whitelistAdminAddr common.Address
 
-type WhitelistedValidator = struct {
-	ValidatorAddress string   "json:\"ValidatorAddress\""
-	TargetWeight     *big.Int "json:\"TargetWeight\""
-}
+	if params.CwLockedPoolAddress != "" {
+		if accAddr, err := sdk.AccAddressFromBech32(params.CwLockedPoolAddress); err == nil {
+			cwLockedPoolAddr = common.BytesToAddress(accAddr.Bytes())
+		}
+	}
 
-type Description = struct {
-	Moniker         string "json:\"moniker\""
-	Identity        string "json:\"identity\""
-	Website         string "json:\"website\""
-	SecurityContact string "json:\"securityContact\""
-	Details         string "json:\"details\""
-}
+	if params.FeeAccountAddress != "" {
+		if accAddr, err := sdk.AccAddressFromBech32(params.FeeAccountAddress); err == nil {
+			feeAccountAddr = common.BytesToAddress(accAddr.Bytes())
+		}
+	}
 
-type LiquidStakeParams = struct {
-	LiquidBondDenom       string                 "json:\"LiquidBondDenom\""
-	WhiteListedValidators []WhitelistedValidator "json:\"WhiteListedValidators\""
-	UnstakeFeeRate        *big.Int               "json:\"UnstakeFeeRate\""
-	LsmDisabled           bool                   "json:\"LsmDisabled\""
-	MinLiquidStakeAmount  *big.Int               "json:\"MinLiquidStakeAmount\""
-	CwLockedPoolAddress   string                 "json:\"CwLockedPoolAddress\""
-	FeeAcountAddress      string                 "json:\"FeeAcountAddress\""
-	AutocompoundFeeRate   *big.Int               "json:\"AutocompoundFeeRate\""
-	WhitelistAdminAddress string                 "json:\"WhitelistAdminAddress\""
-	ModulePaused          bool                   "json:\"ModulePuased\""
+	if params.WhitelistAdminAddress != "" {
+		if accAddr, err := sdk.AccAddressFromBech32(params.WhitelistAdminAddress); err == nil {
+			whitelistAdminAddr = common.BytesToAddress(accAddr.Bytes())
+		}
+	}
+
+	return LiquidStakeUpdatableParams{
+		UnstakeFeeRate:        params.UnstakeFeeRate.BigInt(),
+		LsmDisabled:           params.LsmDisabled,
+		MinLiquidStakeAmount:  params.MinLiquidStakeAmount.BigInt(),
+		CwLockedPoolAddress:   cwLockedPoolAddr,
+		FeeAccountAddress:     feeAccountAddr,
+		AutocompoundFeeRate:   params.AutocompoundFeeRate.BigInt(),
+		WhitelistAdminAddress: whitelistAdminAddr,
+	}
 }
 
 func NewMsgLiquidStake(args []interface{}, denom string) (*types.MsgLiquidStake, common.Address, error) {
@@ -306,13 +314,12 @@ func NewMsgUpdateParams(args []interface{}, denom string, authorityAddress commo
 		return nil, fmt.Errorf(cmn.ErrInvalidNumberOfArgs, 1, len(args))
 	}
 
-	params, ok := args[0].(LiquidStakeParams)
+	params, ok := args[0].(LiquidStakeUpdatableParams)
 	if !ok {
 		return nil, fmt.Errorf(cmn.ErrInvalidType, "LiquidStakeParams", "received", args[0])
 	}
 
-	Params := types.Params{
-		LiquidBondDenom:       params.LiquidBondDenom,
+	Params := types.UpdatableParams{
 		WhitelistAdminAddress: sdk.AccAddress(params.WhitelistAdminAddress.Bytes()).String(),
 		UnstakeFeeRate:        math.LegacyNewDecFromBigIntWithPrec(params.UnstakeFeeRate, math.LegacyPrecision),
 		LsmDisabled:           params.LsmDisabled,
@@ -320,13 +327,6 @@ func NewMsgUpdateParams(args []interface{}, denom string, authorityAddress commo
 		CwLockedPoolAddress:   sdk.AccAddress(params.CwLockedPoolAddress.Bytes()).String(),
 		FeeAccountAddress:     sdk.AccAddress(params.FeeAccountAddress.Bytes()).String(),
 		AutocompoundFeeRate:   math.LegacyNewDecFromBigIntWithPrec(params.AutocompoundFeeRate, math.LegacyPrecision),
-		ModulePaused:          params.ModulePaused,
-		WhitelistedValidators: make([]types.WhitelistedValidator, len(params.WhitelistedValidators)),
-	}
-
-	for i, whitelisted := range params.WhitelistedValidators {
-		Params.WhitelistedValidators[i].ValidatorAddress = sdk.ValAddress(whitelisted.ValidatorAddress.Bytes()).String()
-		Params.WhitelistedValidators[i].TargetWeight = math.NewIntFromBigInt(whitelisted.TargetWeight)
 	}
 
 	msg := types.MsgUpdateParams{
@@ -379,4 +379,3 @@ func NewMsgSetModulePaused(args []interface{}, denom string, authorityAddress co
 
 	return &msg, nil
 }
-

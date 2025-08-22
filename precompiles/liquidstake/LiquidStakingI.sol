@@ -32,6 +32,16 @@ struct LiquidStakeParams {
     bool                    modulePaused;
 }
 
+struct LiquidStakeUpdatableParams {
+    int256                  unstakeFeeRate;
+    bool                    lsmDisabled;
+    int256                  minLiquidStakeAmount;
+    address                 cwLockedPoolAddress;
+    address                 feeAccountAddress;
+    int256                  autocompoundFeeRate;
+    address                 whitelistAdminAddress;
+}
+
 enum ValidatorStatus {
     Unspecified,
     Active,
@@ -82,7 +92,7 @@ interface LiquidStakingI{
 
     // admin transactions
     function updateParams(
-        LiquidStakeParams calldata  params
+        LiquidStakeUpdatableParams calldata  params
     ) external returns (bool success);
 
     function updateWhitelistedValidators(
@@ -122,7 +132,7 @@ interface LiquidStakingI{
     );
 
     event UpdateParams(
-        LiquidStakeParams   params
+        LiquidStakeUpdatableParams  params
     );
 
     event UpdateWhitelistedValidator(

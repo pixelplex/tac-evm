@@ -1524,7 +1524,6 @@ github.com/pierrec/lz4 v2.0.5+incompatible/go.mod h1:pdkljMzZIN41W+lC3N2tnIh5sFi
 github.com/pierrec/lz4/v4 v4.1.15/go.mod h1:gZWDp/Ze/IJXGXf23ltt2EXimqmTUXEy0GFuRQyBid4=
 github.com/pingcap/errors v0.11.4 h1:lFuQV/oaUMGcD2tqt+01ROSmJs75VG1ToEOkZIZ4nE4=
 github.com/pingcap/errors v0.11.4/go.mod h1:Oi8TUi2kEtXXLMJk9l1cGmz20kV3TaQ0usTwv5KuLY8=
-<<<<<<< HEAD
 github.com/pion/dtls/v2 v2.2.7 h1:cSUBsETxepsCSFSxC3mc/aDo14qQLMSL+O6IjG28yV8=
 github.com/pion/dtls/v2 v2.2.7/go.mod h1:8WiMkebSHFD0T+dIU+UeBaoV7kDhOW5oDCzZ7WZ/F9s=
 github.com/pion/logging v0.2.2 h1:M9+AIj/+pxNsDfAT64+MAVgJO0rsyLnoJKCqf//DoeY=
@@ -1537,10 +1536,6 @@ github.com/pion/transport/v3 v3.0.1 h1:gDTlPJwROfSfz6QfSi0ZmeCSkFcnWWiiR9ES0ouAN
 github.com/pion/transport/v3 v3.0.1/go.mod h1:UY7kiITrlMv7/IKgd5eTUcaahZx5oUN3l9SzK5f5xE0=
 github.com/pixelplex/tac-cosmos-sdk v0.53.4-tac-lsm h1:wDtTdyatZYcywnbTVndGDsq2EcuK71qiQwjwhHmIGO0=
 github.com/pixelplex/tac-cosmos-sdk v0.53.4-tac-lsm/go.mod h1:ynUwLGFGEYUg6faxaUmmhBLaWVJdI9CTX2nOg0YtFo0=
-=======
-github.com/pixelplex/cosmos-sdk v0.50.12-lsm-beta.0 h1:+Cu+JF0lv1rFm6zuA67I4ZUwgP/e1inhGOo4ut3AP48=
-github.com/pixelplex/cosmos-sdk v0.50.12-lsm-beta.0/go.mod h1:0Fo5FGFsiXxRRrVm7hBwxzwCeHhNxFPIMUSXqe9P8aA=
->>>>>>> 64058c94 (synchronize with stable implementation in tacchain node with 402b49c commit)
 github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e/go.mod h1:pJLUxLENpZxwdsKMEsNbx1VGcRFpLqf3715MtcvvzbA=
 github.com/pkg/errors v0.8.0/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
