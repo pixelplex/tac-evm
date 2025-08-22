@@ -17,6 +17,11 @@ import (
 
 	dbm "github.com/cosmos/cosmos-db"
 	evmante "github.com/cosmos/evm/ante"
+
+	"github.com/cosmos/cosmos-sdk/x/crisis"
+	crisiskeeper "github.com/cosmos/cosmos-sdk/x/crisis/keeper"
+	crisistypes "github.com/cosmos/cosmos-sdk/x/crisis/types"
+
 	cosmosevmante "github.com/cosmos/evm/ante/evm"
 	evmconfig "github.com/cosmos/evm/config"
 	evmosencoding "github.com/cosmos/evm/encoding"
@@ -24,6 +29,10 @@ import (
 	evmmempool "github.com/cosmos/evm/mempool"
 	srvflags "github.com/cosmos/evm/server/flags"
 	cosmosevmtypes "github.com/cosmos/evm/types"
+	cosmosevmutils "github.com/cosmos/evm/utils"
+	"github.com/cosmos/evm/x/epochs"
+	epochskeeper "github.com/cosmos/evm/x/epochs/keeper"
+	epochstypes "github.com/cosmos/evm/x/epochs/types"
 	"github.com/cosmos/evm/x/erc20"
 	erc20keeper "github.com/cosmos/evm/x/erc20/keeper"
 	erc20types "github.com/cosmos/evm/x/erc20/types"
@@ -185,6 +194,7 @@ type EVMD struct {
 	MintKeeper            mintkeeper.Keeper
 	DistrKeeper           distrkeeper.Keeper
 	GovKeeper             govkeeper.Keeper
+	CrisisKeeper          *crisiskeeper.Keeper
 	UpgradeKeeper         *upgradekeeper.Keeper
 	ParamsKeeper          paramskeeper.Keeper //nolint:staticcheck
 	AuthzKeeper           authzkeeper.Keeper
@@ -203,6 +213,8 @@ type EVMD struct {
 	Erc20Keeper       erc20keeper.Keeper
 	PreciseBankKeeper precisebankkeeper.Keeper
 	EVMMempool        *evmmempool.ExperimentalEVMMempool
+
+	EpochsKeeper *epochskeeper.Keeper
 
 	// liquidstake keeper
 	LiquidStakeKeeper liquidstakekeeper.Keeper
@@ -282,9 +294,12 @@ func NewExampleApp(
 
 	keys := storetypes.NewKVStoreKeys(
 		authtypes.StoreKey, banktypes.StoreKey, stakingtypes.StoreKey,
+		crisistypes.StoreKey,
 		minttypes.StoreKey, distrtypes.StoreKey, slashingtypes.StoreKey,
-		govtypes.StoreKey, paramstypes.StoreKey, consensusparamtypes.StoreKey,
-		upgradetypes.StoreKey, feegrant.StoreKey, evidencetypes.StoreKey, authzkeeper.StoreKey,
+		govtypes.StoreKey, paramstypes.StoreKey, consensusparamtypes.StoreKey, upgradetypes.StoreKey, feegrant.StoreKey,
+		evidencetypes.StoreKey, capabilitytypes.StoreKey,
+		authzkeeper.StoreKey,
+		epochstypes.StoreKey,
 		// ibc keys
 		ibcexported.StoreKey, ibctransfertypes.StoreKey,
 		// liquidstake key
@@ -469,6 +484,23 @@ func NewExampleApp(
 	// If evidence needs to be handled for the app, set routes in router here and seal
 	app.EvidenceKeeper = *evidenceKeeper
 
+	invCheckPeriod, ok := appOpts.Get(server.FlagInvCheckPeriod).(uint)
+	if !ok {
+		panic("can not convert invCheckPeriod to uint")
+	}
+
+	app.CrisisKeeper = crisiskeeper.NewKeeper(
+		appCodec,
+		runtime.NewKVStoreService(keys[crisistypes.StoreKey]),
+		invCheckPeriod,
+		app.BankKeeper,
+		authtypes.FeeCollectorName,
+		authAddr,
+		app.AccountKeeper.AddressCodec(),
+	)
+
+	app.EpochsKeeper = epochskeeper.NewKeeper(keys[epochstypes.StoreKey])
+
 	// liquidstake keeper
 	app.LiquidStakeKeeper = liquidstakekeeper.NewKeeper(
 		appCodec,
@@ -610,6 +642,10 @@ func NewExampleApp(
 		),
 	)
 
+	app.EpochsKeeper.SetHooks(app.LiquidStakeKeeper.EpochHooks())
+
+	skipGenesisInvariants := cast.ToBool(appOpts.Get(crisis.FlagSkipGenesisInvariants))
+
 	/****  Module Options ****/
 
 	// NOTE: Any module instantiated in the module manager that is later modified
@@ -629,6 +665,8 @@ func NewExampleApp(
 		staking.NewAppModule(appCodec, app.StakingKeeper, app.AccountKeeper, app.BankKeeper, app.GetSubspace(stakingtypes.ModuleName)),
 		upgrade.NewAppModule(app.UpgradeKeeper, app.AccountKeeper.AddressCodec()),
 		evidence.NewAppModule(app.EvidenceKeeper),
+		params.NewAppModule(app.ParamsKeeper),
+		epochs.NewAppModule(*app.EpochsKeeper),
 		authzmodule.NewAppModule(appCodec, app.AuthzKeeper, app.AccountKeeper, app.BankKeeper, app.interfaceRegistry),
 		consensus.NewAppModule(appCodec, app.ConsensusParamsKeeper),
 		vesting.NewAppModule(app.AccountKeeper, app.BankKeeper),
@@ -637,6 +675,7 @@ func NewExampleApp(
 		ibctm.NewAppModule(tmLightClientModule),
 		transferModule,
 		liquidstake.NewAppModule(app.LiquidStakeKeeper),
+		crisis.NewAppModule(app.CrisisKeeper, skipGenesisInvariants, app.GetSubspace(crisistypes.ModuleName)), // always be last to make sure that it checks for all invariants and not only part of them
 		// Cosmos EVM modules
 		vm.NewAppModule(app.EVMKeeper, app.AccountKeeper, app.AccountKeeper.AddressCodec()),
 		feemarket.NewAppModule(app.FeeMarketKeeper),
@@ -686,6 +725,8 @@ func NewExampleApp(
 		erc20types.ModuleName, feemarkettypes.ModuleName,
 		evmtypes.ModuleName, // NOTE: EVM BeginBlocker must come after FeeMarket BeginBlocker
 
+		epochstypes.ModuleName,
+
 		// TODO: remove no-ops? check if all are no-ops before removing
 		distrtypes.ModuleName, slashingtypes.ModuleName,
 		evidencetypes.ModuleName, stakingtypes.ModuleName,
@@ -695,16 +736,21 @@ func NewExampleApp(
 		paramstypes.ModuleName, consensusparamtypes.ModuleName,
 		precisebanktypes.ModuleName,
 		vestingtypes.ModuleName,
+		crisistypes.ModuleName,
 	)
 
 	// NOTE: the feemarket module should go last in order of end blockers that are actually doing something,
 	// to get the full block gas used.
 	app.ModuleManager.SetOrderEndBlockers(
+		crisistypes.ModuleName,
 		govtypes.ModuleName, stakingtypes.ModuleName,
 		authtypes.ModuleName, banktypes.ModuleName,
 
 		// Cosmos EVM EndBlockers
 		evmtypes.ModuleName, erc20types.ModuleName, feemarkettypes.ModuleName,
+
+		epochstypes.ModuleName,
+		liquidstaketypes.ModuleName,
 
 		// no-ops
 		ibcexported.ModuleName, ibctransfertypes.ModuleName,
@@ -725,6 +771,8 @@ func NewExampleApp(
 		minttypes.ModuleName,
 		ibcexported.ModuleName,
 
+		epochstypes.ModuleName,
+
 		// Cosmos EVM modules
 		//
 		// NOTE: feemarket module needs to be initialized before genutil module:
@@ -738,9 +786,11 @@ func NewExampleApp(
 		ibctransfertypes.ModuleName,
 		genutiltypes.ModuleName, evidencetypes.ModuleName, authz.ModuleName,
 		feegrant.ModuleName, upgradetypes.ModuleName, vestingtypes.ModuleName,
+		crisistypes.ModuleName,
 	}
 	app.ModuleManager.SetOrderInitGenesis(genesisModuleOrder...)
 	app.ModuleManager.SetOrderExportGenesis(genesisModuleOrder...)
+	app.ModuleManager.RegisterInvariants(app.CrisisKeeper)
 
 	// Uncomment if you want to set a custom migration order here.
 	// app.ModuleManager.SetOrderMigrations(custom order)
@@ -1210,6 +1260,7 @@ func initParamsKeeper(appCodec codec.BinaryCodec, legacyAmino *codec.LegacyAmino
 	paramsKeeper.Subspace(distrtypes.ModuleName)
 	paramsKeeper.Subspace(slashingtypes.ModuleName)
 	paramsKeeper.Subspace(govtypes.ModuleName)
+	paramsKeeper.Subspace(crisistypes.ModuleName).WithKeyTable(crisistypes.ParamKeyTable())
 
 	// ibc modules
 	keyTable := ibcclienttypes.ParamKeyTable()
