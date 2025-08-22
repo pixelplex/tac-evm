@@ -14,13 +14,13 @@ import (
 )
 
 const (
-	LiquidStakeMethod                 = "liquidStake"
-	StakeToLPMethod                   = "stakeToLP"
-	LiquidUnstakeMethod               = "liquidUnstake"
+	LiquidStakeMethod   = "liquidStake"
+	StakeToLPMethod     = "stakeToLP"
+	LiquidUnstakeMethod = "liquidUnstake"
 
-	UpdateParams                      = "updateParams"
-	UpdateWhitelistedValidators       = "updateWhitelistedValidators"
-	SetModulePaused                   = "setModulePaused"
+	UpdateParams                = "updateParams"
+	UpdateWhitelistedValidators = "updateWhitelistedValidators"
+	SetModulePaused             = "setModulePaused"
 )
 
 func (p Precompile) LiquidStake(
@@ -166,7 +166,6 @@ func (p Precompile) LiquidUnstake(
 		// when calling the precompile from a smart contract
 		// This prevents the stateDB from overwriting the changed balance in the bank keeper when committing the EVM state.
 
-
 		amt, err := utils.Uint256FromBigInt(msg.Amount.Amount.BigInt())
 		if err != nil {
 			return nil, err
@@ -174,7 +173,6 @@ func (p Precompile) LiquidUnstake(
 
 		p.SetBalanceChangeEntries(cmn.NewBalanceChangeEntry(delHexAddr, amt, cmn.Sub))
 	}
-
 
 	// Emit event after successful transaction
 	if err := p.EmitLiquidUnstakeEvent(ctx, stateDB, msg, *delegatorHexAddr); err != nil {
@@ -327,4 +325,3 @@ func (p Precompile) SetModulePaused(
 
 	return method.Outputs.Pack(true)
 }
-
