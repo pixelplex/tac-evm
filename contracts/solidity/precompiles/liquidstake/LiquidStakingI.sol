@@ -10,29 +10,36 @@ address constant LIQUIDSTAKING_PRECOMPILE_ADDRESS = 0x00000000000000000000000000
 LiquidStakingI constant LIQUIDSTAKING_CONTRACT = LiquidStakingI(LIQUIDSTAKING_PRECOMPILE_ADDRESS);
 
 /// @dev Define all the available liquidstake methods.
-string constant MSG_LIQUID_STAKE = "/pstake.liquidstake.v1beta1.MsgLiquidStake";
-string constant MSG_LIQUID_UNSTAKE = "/pstake.liquidstake.v1beta1.MsgLiquidUnstake";
-string constant MSG_STAKE_TO_LP = "/pstake.liquidstake.v1beta1.MsgStakeToLP";
-string constant MSG_UPDATE_PARAMS = "/pstake.liquidstake.v1beta1.MsgUpdateParams";
-string constant MSG_UPDATE_WHITELISTED_VALIDATORS = "/pstake.liquidstake.v1beta1.MsgUpdateWhitelistedValidators";
-string constant MSG_SET_MODULE_PAUSED = "/pstake.liquidstake.v1beta1.MsgSetModulePaused";
+string constant MSG_LIQUID_STAKE = "/tac.liquidstake.v1beta1.MsgLiquidStake";
+string constant MSG_LIQUID_UNSTAKE = "/tac.liquidstake.v1beta1.MsgLiquidUnstake";
+string constant MSG_STAKE_TO_LP = "/tac.liquidstake.v1beta1.MsgStakeToLP";
 
 struct WhitelistedValidator {
-	address ValidatorAddress;
-    int32     TargetWeight;
+    address     validatorAddress;
+    int256      targetWeight;
 }
 
 struct LiquidStakeParams {
-	string                  LiquidBondDenom;
-    WhitelistedValidator[]  WhitelistedValidators;
-    int256                  UnstakeFeeRate;
-    bool                    LsmDisabled;
-    int256                  MinLiquidStakeAmount;
-    string                  CwLockedPoolAddress;
-    string                  FeeAcountAddress;
-    int256                  AutocompoundFeeRate;
-    address                 WhitelistAdminAddress;
-    bool                    ModulePaused;
+    string                  liquidBondDenom;
+    WhitelistedValidator[]  whitelistedValidators;
+    int256                  unstakeFeeRate;
+    bool                    lsmDisabled;
+    int256                  minLiquidStakeAmount;
+    address                 cwLockedPoolAddress;
+    address                 feeAccountAddress;
+    int256                  autocompoundFeeRate;
+    address                 whitelistAdminAddress;
+    bool                    modulePaused;
+}
+
+struct LiquidStakeUpdatableParams {
+    int256                  unstakeFeeRate;
+    bool                    lsmDisabled;
+    int256                  minLiquidStakeAmount;
+    address                 cwLockedPoolAddress;
+    address                 feeAccountAddress;
+    int256                  autocompoundFeeRate;
+    address                 whitelistAdminAddress;
 }
 
 enum ValidatorStatus {
@@ -42,7 +49,7 @@ enum ValidatorStatus {
 }
 
 struct LiquidValidatorState {
-    string                  operatorAddress;
+    address                 operatorAddress;
     int256                  weight;
     ValidatorStatus         status;
     int256                  delShares;
@@ -70,42 +77,71 @@ interface LiquidStakingI{
     ) external returns (bool success);
     // dev notes: bool success corresponds to "empty" responce in message server
 
-    function StakeToLP(
+    function stakeToLP(
         address         delegatorAddress,
         address         validatorAddress,
         uint256         stakedAmount,
         uint256         liquidAmount
     ) external returns (bool success);
-    // dev notes: bool success corresponds to "empty" responce in message server
 
-    function LiquidUnstake(
+    function liquidUnstake(
         address         delegatorAddress,
-        uint256         callDataAmount
+        uint256         Amount
     ) external returns (int64 completionTime);
-    // dev notes:: kinda unclear how to cast golang time to it
 
-    function UpdateParams(
-        address         authority,
-        LiquidStakeParams calldata params
+
+    // admin transactions
+    function updateParams(
+        LiquidStakeUpdatableParams calldata  params
     ) external returns (bool success);
 
-    function UpdateWhiteListedValidators(
-        address                         authoriy,
+    function updateWhitelistedValidators(
         WhitelistedValidator[] calldata whitelistedValidators
     ) external returns (bool success);
 
-    function SetModulePaused(
-        address authoriy,
+    function setModulePaused(
         bool    isPaused
     ) external returns (bool success);
     // functions definitions end
 
     // view functions/query definitions start
-    function Params() external view returns(LiquidStakeParams calldata);
-    function LiquidValidators() external view returns(LiquidValidatorState[] calldata);
-    function States() external view returns(NetAmountState calldata);
+    function params() external view returns(LiquidStakeParams calldata);
+
+    function liquidValidators() external view returns(LiquidValidatorState[] calldata);
+
+    function states() external view returns(NetAmountState calldata);
     // view functions/query definitions end
 
 
-    // events for smart-contract currently ignored
+    // events definitions start
+    event LiquidStake(
+        address indexed     delegatorAddress,
+        uint256             amount
+    );
+
+    event StakeToLP(
+        address indexed     delegatorAddress,
+        address indexed     validatorAddress,
+        uint256             stakedAmount,
+        uint256             liquidAmount
+    );
+
+    event LiquidUnstake(
+        address indexed     delegatorAddress,
+        uint256             amount
+    );
+
+    event UpdateParams(
+        LiquidStakeUpdatableParams  params
+    );
+
+    event UpdateWhitelistedValidator(
+        WhitelistedValidator[] whitelistedValidators
+    );
+
+    event SetModulePaused(
+        bool                isPaused
+    );
+    // events definitions end
 }
+

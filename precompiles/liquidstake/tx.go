@@ -2,8 +2,8 @@ package liquidstake
 
 import (
 	"fmt"
-	"time"
 
+	"github.com/cosmos/ibc-go/v8/modules/core/errors"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -32,7 +32,6 @@ func (p Precompile) LiquidStake(
 	args []interface{},
 ) ([]byte, error) {
 	bondDenom, err := p.liquidStakeKeeper.BondDenom(ctx)
-
 	if err != nil {
 		return nil, err
 	}
@@ -53,31 +52,8 @@ func (p Precompile) LiquidStake(
 		return nil, err
 	}
 
-	// Only update the authorization if the contract caller is different from owner of the funds
-	if !isCallerOrigin && !isSCDelegator {
-		if err := p.UpdateLiquidStakeAuthorization(ctx, contract.CallerAddress, *delegatorHexAddr, liquidAuthz, expiration, LiquidStakeMsg, msg); err != nil {
-			return nil, err
-		}
-	}
-
-	if !isCallerOrigin && msg.Amount.Denom == evmtypes.GetEVMCoinDenom() {
-		// get the delegator address from the message
-		delAccAddr := sdk.MustAccAddressFromBech32(msg.DelegatorAddress)
-		delHexAddr := common.BytesToAddress(delAccAddr)
-		// NOTE: This ensures that the changes in the bank keeper are correctly mirrored to the EVM stateDB
-		// when calling the precompile from a smart contract
-		// This prevents the stateDB from overwriting the changed balance in the bank keeper when committing the EVM state.
-
-		amt, err := utils.Uint256FromBigInt(msg.Amount.Amount.BigInt())
-		if err != nil {
-			return nil, err
-		}
-
-		p.SetBalanceChangeEntries(cmn.NewBalanceChangeEntry(delHexAddr, amt, cmn.Sub))
-	}
-
 	// Emit event after successful transaction
-	if err := p.EmitLiquidStakeEvent(ctx, stateDB, msg, *delegatorHexAddr); err != nil {
+	if err := p.EmitLiquidStakeEvent(ctx, stateDB, msg, delegatorHexAddr); err != nil {
 		return nil, err
 	}
 
@@ -115,7 +91,7 @@ func (p Precompile) StakeToLP(
 	}
 
 	// Emit event after successful transaction
-	if err := p.EmitStakeToLPEvent(ctx, stateDB, msg, *delegatorHexAddr); err != nil {
+	if err := p.EmitStakeToLPEvent(ctx, stateDB, msg, delegatorHexAddr); err != nil {
 		return nil, err
 	}
 
@@ -150,31 +126,8 @@ func (p Precompile) LiquidUnstake(
 		return nil, err
 	}
 
-	// Only update the authorization if the contract caller is different from owner of the funds
-	if !isCallerOrigin && !isSCDelegator {
-		if err := p.UpdateLiquidStakeAuthorization(ctx, contract.CallerAddress, *delegatorHexAddr, liquidAuthz, expiration, LiquidUnstakeMsg, msg); err != nil {
-			return nil, err
-		}
-	}
-
-	if !isCallerOrigin && msg.Amount.Denom == evmtypes.GetEVMCoinDenom() {
-		// get the delegator address from the message
-		delAccAddr := sdk.MustAccAddressFromBech32(msg.DelegatorAddress)
-		delHexAddr := common.BytesToAddress(delAccAddr)
-		// NOTE: This ensures that the changes in the bank keeper are correctly mirrored to the EVM stateDB
-		// when calling the precompile from a smart contract
-		// This prevents the stateDB from overwriting the changed balance in the bank keeper when committing the EVM state.
-
-		amt, err := utils.Uint256FromBigInt(msg.Amount.Amount.BigInt())
-		if err != nil {
-			return nil, err
-		}
-
-		p.SetBalanceChangeEntries(cmn.NewBalanceChangeEntry(delHexAddr, amt, cmn.Sub))
-	}
-
 	// Emit event after successful transaction
-	if err := p.EmitLiquidUnstakeEvent(ctx, stateDB, msg, *delegatorHexAddr); err != nil {
+	if err := p.EmitLiquidUnstakeEvent(ctx, stateDB, msg, delegatorHexAddr); err != nil {
 		return nil, err
 	}
 
@@ -205,7 +158,7 @@ func (p Precompile) UpdateParams(
 
 	adminAddr := common.BytesToAddress(AdminBytes)
 
-	if adminAddr != contract.CallerAddress {
+	if adminAddr != contract.Caller() {
 		return nil, errors.ErrUnauthorized
 	}
 
@@ -253,7 +206,7 @@ func (p Precompile) UpdateWhitelistedValidators(
 
 	adminAddr := common.BytesToAddress(AdminBytes)
 
-	if adminAddr != contract.CallerAddress {
+	if adminAddr != contract.Caller() {
 		return nil, errors.ErrUnauthorized
 	}
 
@@ -301,7 +254,7 @@ func (p Precompile) SetModulePaused(
 
 	adminAddr := common.BytesToAddress(AdminBytes)
 
-	if adminAddr != contract.CallerAddress {
+	if adminAddr != contract.Caller() {
 		return nil, errors.ErrUnauthorized
 	}
 

@@ -13,9 +13,10 @@ const (
 	BankPrecompileAddress         = "0x0000000000000000000000000000000000000804"
 	GovPrecompileAddress          = "0x0000000000000000000000000000000000000805"
 	SlashingPrecompileAddress     = "0x0000000000000000000000000000000000000806"
+	EvidencePrecompileAddress     = "0x0000000000000000000000000000000000000807"
 )
 
-const LiquidStakePrecompileAddress     = "0x0000000000000000000000000000000000001600"
+const LiquidStakePrecompileAddress = "0x0000000000000000000000000000000000001600"
 
 // AvailableStaticPrecompiles defines the full list of all available EVM extension addresses.
 //

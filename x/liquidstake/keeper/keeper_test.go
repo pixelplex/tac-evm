@@ -9,7 +9,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
 	"github.com/cosmos/cosmos-sdk/x/mint"
-	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	testhelpers "github.com/cosmos/evm/evmd/helpers"
 	"github.com/stretchr/testify/suite"
@@ -39,7 +38,7 @@ func TestKeeperTestSuite(t *testing.T) {
 }
 
 func (s *KeeperTestSuite) SetupTest() {
-	s.app = chain.Setup(s.T(), constants.ExampleChainID)
+	s.app = chain.Setup(s.T(), constants.ExampleChainID.ChainID, constants.ExampleChainID.EVMChainID)
 	s.ctx = s.app.BaseApp.NewContext(false)
 	stakingParams := stakingtypes.DefaultParams()
 	stakingParams.MaxEntries = 7
@@ -54,12 +53,12 @@ func (s *KeeperTestSuite) SetupTest() {
 
 	s.ctx = s.ctx.WithBlockHeight(100).WithBlockTime(testhelpers.ParseTime("2022-03-01T00:00:00Z"))
 	params := s.keeper.GetParams(s.ctx)
-	params.UnstakeFeeRate = sdk.ZeroDec()
+	params.UnstakeFeeRate = math.LegacyZeroDec()
 	params.AutocompoundFeeRate = types.DefaultAutocompoundFeeRate
 	s.Require().NoError(s.keeper.SetParams(s.ctx, params))
 	s.keeper.UpdateLiquidValidatorSet(s.ctx, true)
 	// call mint.BeginBlocker for init k.SetLastBlockTime(ctx, ctx.BlockTime())
-	err := mint.BeginBlocker(s.ctx, s.app.MintKeeper, minttypes.DefaultInflationCalculationFn)
+	err := mint.BeginBlocker(s.ctx, s.app.MintKeeper)
 	s.Require().NoError(err)
 }
 
@@ -76,7 +75,7 @@ func (s *KeeperTestSuite) CreateValidators(powers []int64) ([]sdk.AccAddress, []
 	pks := testhelpers.CreateTestPubKeys(num)
 	skParams, err := s.app.StakingKeeper.GetParams(s.ctx)
 	s.Require().NoError(err)
-	skParams.ValidatorLiquidStakingCap = sdk.OneDec()
+	skParams.ValidatorLiquidStakingCap = math.LegacyOneDec()
 	_ = s.app.StakingKeeper.SetParams(s.ctx, skParams)
 	for i, power := range powers {
 		val, err := stakingtypes.NewValidator(valAddrs[i].String(), pks[i], stakingtypes.Description{})

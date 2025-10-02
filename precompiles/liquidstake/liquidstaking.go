@@ -3,8 +3,10 @@ package liquidstake
 import (
 	"embed"
 
+	"cosmossdk.io/core/address"
 	"github.com/ethereum/go-ethereum/accounts/abi"
 	"github.com/ethereum/go-ethereum/common"
+	"github.com/ethereum/go-ethereum/core/tracing"
 	"github.com/ethereum/go-ethereum/core/vm"
 
 	cmn "github.com/cosmos/evm/precompiles/common"
@@ -13,7 +15,6 @@ import (
 	storetypes "cosmossdk.io/store/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	authzkeeper "github.com/cosmos/cosmos-sdk/x/authz/keeper"
 	"github.com/cosmos/evm/x/liquidstake/keeper"
 	evmtypes "github.com/cosmos/evm/x/vm/types"
 )
@@ -29,6 +30,7 @@ var f embed.FS
 type Precompile struct {
 	cmn.Precompile
 	liquidStakeKeeper keeper.Keeper
+	addrCdc           address.Codec
 }
 
 // LoadABI loads the staking ABI from the embedded abi.json file
@@ -41,7 +43,7 @@ func LoadABI() (abi.ABI, error) {
 // PrecompiledContract interface.
 func NewPrecompile(
 	liquidStakeKeeper keeper.Keeper,
-	authzKeeper authzkeeper.Keeper,
+	addrCdc address.Codec,
 ) (*Precompile, error) {
 	abi, err := LoadABI()
 	if err != nil {
@@ -51,12 +53,11 @@ func NewPrecompile(
 	p := &Precompile{
 		Precompile: cmn.Precompile{
 			ABI:                  abi,
-			AuthzKeeper:          authzKeeper,
 			KvGasConfig:          storetypes.KVGasConfig(),
 			TransientKVGasConfig: storetypes.TransientGasConfig(),
-			ApprovalExpiration:   cmn.DefaultExpirationDuration, // should be configurable in the future.
 		},
 		liquidStakeKeeper: liquidStakeKeeper,
+		addrCdc:           addrCdc,
 	}
 	// SetAddress defines the address of the staking precompiled contract.
 	p.SetAddress(common.HexToAddress(evmtypes.LiquidStakePrecompileAddress))
@@ -84,63 +85,58 @@ func (p Precompile) RequiredGas(input []byte) uint64 {
 
 // Run executes the precompiled contract staking methods defined in the ABI.
 func (p Precompile) Run(evm *vm.EVM, contract *vm.Contract, readOnly bool) (bz []byte, err error) {
-	ctx, stateDB, snapshot, method, initialGas, args, err := p.RunSetup(evm, contract, readOnly, p.IsTransaction)
+	ctx, stateDB, method, initialGas, args, err := p.RunSetup(evm, contract, readOnly, p.IsTransaction)
 	if err != nil {
 		return nil, err
 	}
 
 	// This handles any out of gas errors that may occur during the execution of a precompile tx or query.
 	// It avoids panics and returns the out of gas error so the EVM can continue gracefully.
-	defer cmn.HandleGasError(ctx, contract, initialGas, &err, stateDB, snapshot)()
+	defer cmn.HandleGasError(ctx, contract, initialGas, &err)()
 
-	return p.RunAtomic(
-		snapshot,
-		stateDB,
-		func() ([]byte, error) {
-			switch method.Name {
-			// Transactions
-			case LiquidStakeMethod:
-				bz, err = p.LiquidStake(ctx, evm.Origin, contract, stateDB, method, args)
-			case StakeToLPMethod:
-				bz, err = p.StakeToLP(ctx, evm.Origin, contract, stateDB, method, args)
-			case LiquidUnstakeMethod:
-				bz, err = p.LiquidUnstake(ctx, evm.Origin, contract, stateDB, method, args)
+	switch method.Name {
+	// Transactions
+	case LiquidStakeMethod:
+		bz, err = p.LiquidStake(ctx, evm.Origin, contract, stateDB, method, args)
+	case StakeToLPMethod:
+		bz, err = p.StakeToLP(ctx, evm.Origin, contract, stateDB, method, args)
+	case LiquidUnstakeMethod:
+		bz, err = p.LiquidUnstake(ctx, evm.Origin, contract, stateDB, method, args)
 
-			// Transactions
-			case UpdateParams:
-				bz, err = p.UpdateParams(ctx, evm.Origin, contract, stateDB, method, args)
-			case UpdateWhitelistedValidators:
-				bz, err = p.UpdateWhitelistedValidators(ctx, evm.Origin, contract, stateDB, method, args)
-			case SetModulePaused:
-				bz, err = p.SetModulePaused(ctx, evm.Origin, contract, stateDB, method, args)
+	// Transactions
+	case UpdateParams:
+		bz, err = p.UpdateParams(ctx, evm.Origin, contract, stateDB, method, args)
+	case UpdateWhitelistedValidators:
+		bz, err = p.UpdateWhitelistedValidators(ctx, evm.Origin, contract, stateDB, method, args)
+	case SetModulePaused:
+		bz, err = p.SetModulePaused(ctx, evm.Origin, contract, stateDB, method, args)
 
-			// Query methods
-			case ParamsMethod:
-				bz, err = p.Params(ctx, contract, method, args)
-			case LiquidValidatorsMethod:
-				bz, err = p.LiquidValidators(ctx, contract, method, args)
-			case StatesMethod:
-				bz, err = p.States(ctx, contract, method, args)
+	// Query methods
+	case ParamsMethod:
+		bz, err = p.Params(ctx, contract, method, args)
+	case LiquidValidatorsMethod:
+		bz, err = p.LiquidValidators(ctx, contract, method, args)
+	case StatesMethod:
+		bz, err = p.States(ctx, contract, method, args)
 
-			}
+	}
 
-			if err != nil {
-				return nil, err
-			}
+	if err != nil {
+		return nil, err
+	}
 
-			cost := ctx.GasMeter().GasConsumed() - initialGas
+	cost := ctx.GasMeter().GasConsumed() - initialGas
 
-			if !contract.UseGas(cost) {
-				return nil, vm.ErrOutOfGas
-			}
+	if !contract.UseGas(cost, nil, tracing.GasChangeCallPrecompiledContract) {
+		return nil, vm.ErrOutOfGas
+	}
 
-			if err := p.AddJournalEntries(stateDB, snapshot); err != nil {
-				return nil, err
-			}
+	// Process the native balance changes after the method execution.
+	if err = p.GetBalanceHandler().AfterBalanceChange(ctx, stateDB); err != nil {
+		return nil, err
+	}
 
-			return bz, nil
-		},
-	)
+	return bz, nil
 }
 
 // IsTransaction checks if the given method name corresponds to a transaction or query.
