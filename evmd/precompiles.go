@@ -86,7 +86,6 @@ func NewAvailableStaticPrecompiles(
 	govKeeper govkeeper.Keeper,
 	slashingKeeper slashingkeeper.Keeper,
 	codec codec.Codec,
-	evidenceKeeper evidencekeeper.Keeper,
 	liquidstakeKeeper liquidstakekeeper.Keeper,
 	opts ...Option,
 ) map[common.Address]vm.PrecompiledContract {
@@ -146,12 +145,7 @@ func NewAvailableStaticPrecompiles(
 		panic(fmt.Errorf("failed to instantiate slashing precompile: %w", err))
 	}
 
-	evidencePrecompile, err := evidenceprecompile.NewPrecompile(evidenceKeeper, authzKeeper)
-	if err != nil {
-		panic(fmt.Errorf("failed to instantiate evidence precompile: %w", err))
-	}
-
-	liquidstakePrecompile, err := liquidStakePrecompile.NewPrecompile(liquidstakeKeeper, authzKeeper)
+	liquidstakePrecompile, err := liquidStakePrecompile.NewPrecompile(liquidstakeKeeper, options.AddressCodec)
 	if err != nil {
 		panic(fmt.Errorf("failed to instantiate evidence precompile: %w", err))
 	}
@@ -167,7 +161,6 @@ func NewAvailableStaticPrecompiles(
 	precompiles[bankPrecompile.Address()] = bankPrecompile
 	precompiles[govPrecompile.Address()] = govPrecompile
 	precompiles[slashingPrecompile.Address()] = slashingPrecompile
-	precompiles[evidencePrecompile.Address()] = evidencePrecompile
 	precompiles[liquidstakePrecompile.Address()] = liquidstakePrecompile
 
 	return precompiles

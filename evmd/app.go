@@ -29,7 +29,6 @@ import (
 	evmmempool "github.com/cosmos/evm/mempool"
 	srvflags "github.com/cosmos/evm/server/flags"
 	cosmosevmtypes "github.com/cosmos/evm/types"
-	cosmosevmutils "github.com/cosmos/evm/utils"
 	"github.com/cosmos/evm/x/epochs"
 	epochskeeper "github.com/cosmos/evm/x/epochs/keeper"
 	epochstypes "github.com/cosmos/evm/x/epochs/types"
@@ -188,7 +187,6 @@ type EVMD struct {
 	// keepers
 	AccountKeeper         authkeeper.AccountKeeper
 	BankKeeper            bankkeeper.BaseKeeper
-	CapabilityKeeper      *capabilitykeeper.Keeper
 	StakingKeeper         *stakingkeeper.Keeper
 	SlashingKeeper        slashingkeeper.Keeper
 	MintKeeper            mintkeeper.Keeper
@@ -297,7 +295,7 @@ func NewExampleApp(
 		crisistypes.StoreKey,
 		minttypes.StoreKey, distrtypes.StoreKey, slashingtypes.StoreKey,
 		govtypes.StoreKey, paramstypes.StoreKey, consensusparamtypes.StoreKey, upgradetypes.StoreKey, feegrant.StoreKey,
-		evidencetypes.StoreKey, capabilitytypes.StoreKey,
+		evidencetypes.StoreKey,
 		authzkeeper.StoreKey,
 		epochstypes.StoreKey,
 		// ibc keys
@@ -637,7 +635,6 @@ func NewExampleApp(
 			app.GovKeeper,
 			app.SlashingKeeper,
 			app.AppCodec(),
-			app.EvidenceKeeper,
 			app.LiquidStakeKeeper,
 		),
 	)
@@ -665,7 +662,6 @@ func NewExampleApp(
 		staking.NewAppModule(appCodec, app.StakingKeeper, app.AccountKeeper, app.BankKeeper, app.GetSubspace(stakingtypes.ModuleName)),
 		upgrade.NewAppModule(app.UpgradeKeeper, app.AccountKeeper.AddressCodec()),
 		evidence.NewAppModule(app.EvidenceKeeper),
-		params.NewAppModule(app.ParamsKeeper),
 		epochs.NewAppModule(*app.EpochsKeeper),
 		authzmodule.NewAppModule(appCodec, app.AuthzKeeper, app.AccountKeeper, app.BankKeeper, app.interfaceRegistry),
 		consensus.NewAppModule(appCodec, app.ConsensusParamsKeeper),

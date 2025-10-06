@@ -86,6 +86,7 @@ require (
 	github.com/cosmos/gogogateway v1.2.0 // indirect
 	github.com/cosmos/iavl v1.2.2 // indirect
 	github.com/cosmos/ibc-go/modules/capability v1.0.1 // indirect
+	github.com/cosmos/ibc-go/v8 v8.4.0 // indirect
 	github.com/cosmos/ics23/go v0.11.0 // indirect
 	github.com/cosmos/ledger-cosmos-go v0.14.0 // indirect
 	github.com/crate-crypto/go-eth-kzg v1.3.0 // indirect
@@ -277,6 +278,7 @@ replace (
 	github.com/99designs/keyring => github.com/cosmos/keyring v1.2.0
 	// Pin this pebble version to avoid breaking compilation of geth
 	github.com/cockroachdb/pebble => github.com/cockroachdb/pebble v0.0.0-20230928194634-aa077af62593
+	github.com/cosmos/cosmos-sdk => github.com/pixelplex/tac-cosmos-sdk v0.53.4-tac-lsm
 	github.com/cosmos/evm => ../
 	github.com/cosmos/evm/evmd => ./evmd
 	// use Cosmos geth fork
